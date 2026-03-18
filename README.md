@@ -27,7 +27,7 @@ At minimum you need:
 
 - `STACKAI_API_BASE_URL`
 - `STACKAI_AUTH_BASE_URL`
-- `STACKAI_CONNECTION_ID`
+- `STACKAI_CONNECTION_ID` *(optional — auto-fetched from `GET /v1/connections` if omitted)*
 - `STACKAI_KNOWLEDGE_BASE_ID`
 - `DATABASE_URL`
 
@@ -154,8 +154,11 @@ The project is built around the principle "render the list first, fetch statuses
 
 - `STACKAI_API_BASE_URL`
 - `STACKAI_AUTH_BASE_URL`
-- `STACKAI_CONNECTION_ID`
 - `DATABASE_URL`
+
+### Optional with fallback
+
+- `STACKAI_CONNECTION_ID` — if omitted, the first connection returned by `GET /v1/connections` is used automatically and cached for the process lifetime. Set explicitly when you have multiple connections or want predictable targeting.
 
 ### Required for KB operations and KB overlay
 
@@ -182,7 +185,7 @@ Option 2:
 
 ### Why the Environment Model Looks Like This
 
-The app deliberately avoids auto-discovery of the connection or KB because earlier attempts to "guess" Stack AI state produced unstable behavior. `STACKAI_CONNECTION_ID` and `STACKAI_KNOWLEDGE_BASE_ID` are explicit bindings between the picker and the Stack AI resources it should talk to. That is operationally better because it reduces hidden logic and ambiguity, especially when a connection is associated with many KBs. `DATABASE_URL` is required only because hidden-state is the single local persistence layer in the app. In the auth path, a long-lived access token is preferable, but login via email/password is also supported because Stack AI does not always provide a dedicated durable service token. This environment model is not the smallest possible, but it is very explicit and operationally understandable.
+Auto-discovery of the KB is deliberately avoided because earlier attempts to "guess" Stack AI state produced unstable behavior. `STACKAI_KNOWLEDGE_BASE_ID` is an explicit binding between the picker and the Stack AI KB it should talk to. `STACKAI_CONNECTION_ID`, by contrast, now supports a controlled fallback: if omitted, the app calls `GET /v1/connections` once and uses the first connection found. That result is cached for the lifetime of the process. The fallback is intentional and safe for single-connection accounts; for multi-connection accounts an explicit `STACKAI_CONNECTION_ID` remains preferable to avoid ambiguity. `DATABASE_URL` is required only because hidden-state is the single local persistence layer in the app. In the auth path, a long-lived access token is preferable, but login via email/password is also supported because Stack AI does not always provide a dedicated durable service token. This environment model is not the smallest possible, but it is very explicit and operationally understandable.
 
 ## Installation and Runtime
 

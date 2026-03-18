@@ -15,6 +15,7 @@ import {
   toHttpError,
 } from "@/server/file-picker/errors"
 import {
+  invalidateKnowledgeBaseCaches,
   readCachedKnowledgeBaseDetails,
   readCachedResolvedFolderSources,
   writeCachedKnowledgeBaseDetails,
@@ -24,9 +25,13 @@ import {
   getConnectionResourcesByIds,
 } from "@/server/file-picker/adapters/stack-ai/connections-gateway"
 import {
+  deleteAllKnowledgeBaseResources,
   getKnowledgeBaseDetails,
   listKnowledgeBaseChildren,
+  rebindKnowledgeBaseConnection,
   searchKnowledgeBaseResources,
+  syncKnowledgeBase,
+  updateKnowledgeBaseSources,
   type KnowledgeBaseDetails,
   type KnowledgeBaseStatusResource,
 } from "@/server/file-picker/adapters/stack-ai/knowledge-bases-gateway"
@@ -40,6 +45,48 @@ import type {
 
 function uniqueSourceIds(ids: readonly string[]): string[] {
   return [...new Set(ids.filter((id) => id.trim()))]
+}
+
+async function rebindAndCleanKnowledgeBase(
+  deps: FilePickerDependencies,
+  staleDetails: KnowledgeBaseDetails,
+): Promise<KnowledgeBaseDetails> {
+  // 1. Rebind KB to current connection
+  const rebound = await rebindKnowledgeBaseConnection(
+    deps.config,
+    staleDetails.knowledgeBaseId,
+    deps.config.connectionId,
+  )
+
+  // 2. Check which old source_ids still exist in the new connection
+  const oldSourceIds = rebound.connectionSourceIds
+  let validSourceIds: string[] = []
+
+  if (oldSourceIds.length > 0) {
+    const resolved = await getConnectionResourcesByIds(deps.config, oldSourceIds)
+    validSourceIds = oldSourceIds.filter((id) => resolved.has(id))
+  }
+
+  // 3. If some sources are stale, purge all KB content and keep only valid sources
+  if (validSourceIds.length !== oldSourceIds.length) {
+    try {
+      await deleteAllKnowledgeBaseResources(deps.config, rebound.knowledgeBaseId)
+    } catch {
+      // Best-effort: KB may already be empty
+    }
+
+    const cleaned = await updateKnowledgeBaseSources(
+      deps.config,
+      rebound,
+      validSourceIds,
+    )
+
+    await syncKnowledgeBase(deps.config, cleaned.knowledgeBaseId)
+    return cleaned
+  }
+
+  await syncKnowledgeBase(deps.config, rebound.knowledgeBaseId)
+  return rebound
 }
 
 export async function resolveKnowledgeBaseBinding(
@@ -63,14 +110,24 @@ export async function resolveKnowledgeBaseBinding(
         await getKnowledgeBaseDetails(deps.config),
       )
 
-    if (details.connectionId !== deps.config.connectionId) {
-      return {
-        public: {
-          state: "connection_mismatch",
-          knowledgeBaseId: details.knowledgeBaseId,
-          message:
-            "The configured knowledge base belongs to a different connection.",
-        },
+    if (!details.connectionId || details.connectionId !== deps.config.connectionId) {
+      try {
+        const rebound = await rebindAndCleanKnowledgeBase(deps, details)
+        invalidateKnowledgeBaseCaches(rebound.knowledgeBaseId)
+        const updated = writeCachedKnowledgeBaseDetails(rebound.knowledgeBaseId, rebound)
+
+        return {
+          public: { state: "ready", knowledgeBaseId: updated.knowledgeBaseId },
+          details: updated,
+        }
+      } catch {
+        return {
+          public: {
+            state: "connection_mismatch",
+            knowledgeBaseId: details.knowledgeBaseId,
+            message: "Failed to auto-rebind knowledge base to the current connection.",
+          },
+        }
       }
     }
 

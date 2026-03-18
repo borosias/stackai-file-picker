@@ -33,7 +33,7 @@ export async function listFolderItems(
     })
   }
 
-  const deps = dependencies ?? getProductionDependencies()
+  const deps = dependencies ?? await getProductionDependencies()
   const pageSize = normalizePageSize(options?.pageSize)
 
   const page = options?.query?.trim()

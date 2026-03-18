@@ -17,7 +17,7 @@ export async function applyItemAction(
   payload: ItemActionPayload,
   dependencies?: FilePickerDependencies,
 ): Promise<ItemActionResponse> {
-  const deps = dependencies ?? getProductionDependencies()
+  const deps = dependencies ?? await getProductionDependencies()
   const resource = targetResourceFromPayload(payload)
   const hiddenIds = await deps.hiddenItemsRepository.getHiddenResourceIds(
     deps.config.connectionId,

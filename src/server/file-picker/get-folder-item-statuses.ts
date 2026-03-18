@@ -20,7 +20,7 @@ export async function getFolderItemStatuses(
   request: StatusOverlayRequest,
   dependencies?: FilePickerDependencies,
 ): Promise<StatusOverlayResponse> {
-  const deps = dependencies ?? getProductionDependencies()
+  const deps = dependencies ?? await getProductionDependencies()
   const hiddenIds = await deps.hiddenItemsRepository.getHiddenResourceIds(
     deps.config.connectionId,
     request.items.map((item) => item.id),

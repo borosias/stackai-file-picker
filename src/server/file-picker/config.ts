@@ -69,7 +69,7 @@ export function getFilePickerConfig(): FilePickerConfig {
     accessToken: readOptionalEnv("STACKAI_ACCESS_TOKEN"),
     email: readOptionalEnv("STACKAI_EMAIL"),
     password: readOptionalEnv("STACKAI_PASSWORD"),
-    connectionId: readRequiredEnv("STACKAI_CONNECTION_ID"),
+    connectionId: readOptionalEnv("STACKAI_CONNECTION_ID") ?? "",
     knowledgeBaseId: readOptionalEnv("STACKAI_KNOWLEDGE_BASE_ID"),
     databaseUrl: readRequiredEnv("DATABASE_URL"),
   }

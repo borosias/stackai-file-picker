@@ -63,7 +63,7 @@ function readResourcePath(resource: z.infer<typeof rawKnowledgeBaseResourceSchem
 
 export interface KnowledgeBaseDetails {
   knowledgeBaseId: string
-  connectionId: string
+  connectionId: string | null
   connectionSourceIds: string[]
   name?: string
   description?: string
@@ -79,7 +79,7 @@ export interface KnowledgeBaseStatusResource {
 
 function parseKnowledgeBase(payload: unknown): KnowledgeBaseDetails {
   const parsed = knowledgeBaseSchema.safeParse(payload)
-  if (!parsed.success || !parsed.data.connection_id) {
+  if (!parsed.success) {
     throw new FilePickerServerError("Stack AI returned invalid knowledge base details.", {
       status: 502,
       code: "stack_contract_error",
@@ -88,7 +88,7 @@ function parseKnowledgeBase(payload: unknown): KnowledgeBaseDetails {
 
   return {
     knowledgeBaseId: parsed.data.knowledge_base_id,
-    connectionId: parsed.data.connection_id,
+    connectionId: parsed.data.connection_id ?? null,
     connectionSourceIds: parsed.data.connection_source_ids,
     name: parsed.data.name,
     description: parsed.data.description,
@@ -198,6 +198,20 @@ export async function updateKnowledgeBaseSources(
   return parseKnowledgeBase(payload)
 }
 
+export async function rebindKnowledgeBaseConnection(
+  config: FilePickerConfig,
+  knowledgeBaseId: string,
+  newConnectionId: string,
+): Promise<KnowledgeBaseDetails> {
+  const payload = await stackRequest(config, {
+    method: "PATCH",
+    path: `/v1/knowledge-bases/${knowledgeBaseId}`,
+    body: { connection_id: newConnectionId },
+  })
+
+  return parseKnowledgeBase(payload)
+}
+
 export async function syncKnowledgeBase(
   config: FilePickerConfig,
   knowledgeBaseId: string,
@@ -233,6 +247,19 @@ export async function bulkDeleteKnowledgeBaseResources(
     body: {
       selection: "list",
       inode_ids: inodeIds,
+    },
+  })
+}
+
+export async function deleteAllKnowledgeBaseResources(
+  config: FilePickerConfig,
+  knowledgeBaseId: string,
+): Promise<void> {
+  await stackRequest(config, {
+    method: "DELETE",
+    path: `/v1/knowledge-bases/${knowledgeBaseId}/resources/bulk`,
+    body: {
+      selection: "all",
     },
   })
 }

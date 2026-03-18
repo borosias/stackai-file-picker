@@ -169,6 +169,40 @@ function parseResourcesById(payload: unknown): ResourceDescriptor[] {
   return Object.values(parsed.data).map((resource) => toResourceDescriptor(resource, "root"))
 }
 
+const connectionListSchema = z.union([
+  z.array(z.object({ connection_id: z.string().min(1) })),
+  z.object({
+    data: z.array(z.object({ connection_id: z.string().min(1) })).default([]),
+  }),
+])
+
+export async function fetchFirstConnectionId(
+  config: FilePickerConfig,
+): Promise<string> {
+  const payload = await stackRequest(config, {
+    method: "GET",
+    path: "/v1/connections",
+  })
+
+  const parsed = connectionListSchema.safeParse(payload)
+  if (!parsed.success) {
+    throw new FilePickerServerError(
+      "Stack AI returned an unexpected response for /v1/connections.",
+      { status: 502, code: "stack_contract_error" },
+    )
+  }
+
+  const list = Array.isArray(parsed.data) ? parsed.data : parsed.data.data
+  if (list.length === 0) {
+    throw new FilePickerServerError(
+      "No connections found in your Stack AI account. Create a connection first.",
+      { status: 404, code: "no_connections" },
+    )
+  }
+
+  return list[0].connection_id
+}
+
 export interface ConnectionResourcesPage {
   items: ResourceDescriptor[]
   hasMore: boolean
