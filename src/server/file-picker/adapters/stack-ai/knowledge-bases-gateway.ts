@@ -212,6 +212,24 @@ export async function rebindKnowledgeBaseConnection(
   return parseKnowledgeBase(payload)
 }
 
+export async function createKnowledgeBase(
+  config: FilePickerConfig,
+  connectionId: string,
+): Promise<KnowledgeBaseDetails> {
+  const payload = await stackRequest(config, {
+    method: "POST",
+    path: "/v1/knowledge-bases",
+    body: {
+      connection_id: connectionId,
+      connection_source_ids: [],
+      name: "File Picker Knowledge Base",
+      description: "Auto-created by stackai-file-picker",
+    },
+  })
+
+  return parseKnowledgeBase(payload)
+}
+
 export async function syncKnowledgeBase(
   config: FilePickerConfig,
   knowledgeBaseId: string,

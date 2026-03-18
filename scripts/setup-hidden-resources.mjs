@@ -71,6 +71,16 @@ async function main() {
     `)
 
     console.log("hidden_resources schema is ready.")
+
+    await sql.unsafe(`
+      create table if not exists kb_overrides (
+        connection_id text primary key,
+        knowledge_base_id text not null,
+        created_at timestamptz not null default now()
+      )
+    `)
+
+    console.log("kb_overrides schema is ready.")
   } finally {
     await sql.end({ timeout: 5 })
   }
