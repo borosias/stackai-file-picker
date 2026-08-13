@@ -1,5 +1,10 @@
 # Stack AI Google Drive Picker
 
+##Current Status
+
+Currently unavailable / non-functional. Stack AI has disabled access to the backend services used by this project, so the application can no longer be deployed successfully and currently fails with backend-related errors.
+The repository is kept as a reference implementation. Restoring functionality would require Stack AI backend access to be re-enabled or the affected integration to be replaced.
+
 ## What This Project Is
 
 This repository contains a Next.js application that implements a custom Google Drive file picker on top of an existing Stack AI connection. The goal is not only to show files and folders, but to provide a file-manager-like interface that lets a user browse the Drive structure, search, filter, sort, index files and folders into a Knowledge Base, de-index them again, and hide individual files from the picker without touching the underlying Google Drive content. The current architecture intentionally separates the fast structure list from the slower and less stable KB status overlay: the list is rendered first, and KB state is fetched afterward as an enhancement layer. That design exists because connection reads are fundamentally cheaper and more reliable than KB operations, and the product feels substantially faster when it never waits for KB state before painting the list. The current source of truth for "is this in the KB or not?" is the real Stack AI Knowledge Base state, not a local approximation. The only local server-side state this project persists is the hidden-state used by `unlist`.
