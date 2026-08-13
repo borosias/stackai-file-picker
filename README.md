@@ -1,6 +1,6 @@
 # Stack AI Google Drive Picker
 
-##Current Status
+## Current Status
 
 Currently unavailable / non-functional. Stack AI has disabled access to the backend services used by this project, so the application can no longer be deployed successfully and currently fails with backend-related errors.
 The repository is kept as a reference implementation. Restoring functionality would require Stack AI backend access to be re-enabled or the affected integration to be replaced.
